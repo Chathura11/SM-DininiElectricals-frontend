@@ -1,0 +1,9 @@
+#background-div{ animation: changeBg 15s infinite; }
+@keyframes changeBg{
+   0%,100%  {background-image: url("../assets/back1.jpg");}
+   66% {background-image: url("../assets/back3.png");}
+}
+
+#background-div-main{
+   background-image: url("../assets/back_gradient2.jpg");
+  }
