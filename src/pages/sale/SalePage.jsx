@@ -246,7 +246,7 @@ const SalesPage = ({ authUser }) => {
 
         <Grid item size={2}>
           <Typography>
-            Price: Rs. {selectedProduct ? selectedProduct.price.toFixed(2) : '0.00'}
+            Price: Rs. {selectedProduct && selectedProduct.price ? selectedProduct.price.toFixed(2) : '0.00'}
           </Typography>
         </Grid>
 
