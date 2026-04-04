@@ -5,8 +5,9 @@ import {
 import axiosInstance from '../../api/api'; // Make sure axiosInstance is configured properly
 import { blueGrey, teal } from '@mui/material/colors';
 import { useNavigate } from 'react-router-dom';
+import SupplierPaymentPage from './SupplierPaymentPage';
 
-const AccountHandlePage = () => {
+const AccountHandlePage = ({authUser}) => {
   const [accounts, setAccounts] = useState([]);
   const [moneyAssetData, setMoneyAssetData] = useState({
     amount: '',
@@ -92,6 +93,15 @@ const AccountHandlePage = () => {
         </Button>
       </Box>
       <Grid container spacing={4}>
+        {/* Supplier Payments */}
+        <Grid size={12}>
+          <Paper variant='outlined' sx={{ p: 3 }}>
+            <Box sx={{backgroundColor:blueGrey[900],pl:1}}>
+                <Typography sx={{color:'white'}} variant="h6" mb={2}>Supplier Payments</Typography>
+            </Box>
+            <SupplierPaymentPage authUser={authUser}/>
+          </Paper>
+        </Grid>
         {/* Add Money Asset */}
         <Grid size={12}>
           <Paper variant='outlined' sx={{ p: 3 }}>

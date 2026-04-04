@@ -160,7 +160,7 @@ const StockEntryForm = () => {
                 <Select name="product" value={currentItem.product} onChange={handleItemChange}>
                   {products.map(p => (
                     <MenuItem key={p._id} value={p._id}>
-                      {p.name} ({p.category?.name || 'No Category'})
+                      {p.name} ({p.category?.name || 'No Category'}) {p.code}
                     </MenuItem>
                   ))}
                 </Select>
