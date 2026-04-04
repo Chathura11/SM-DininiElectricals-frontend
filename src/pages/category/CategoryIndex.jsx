@@ -5,6 +5,7 @@ import MainHeader from '../main/MainHeader'
 import CategoryList from './CategoryList';
 import TableViewOutlinedIcon from '@mui/icons-material/TableViewOutlined';
 import CategoryForm from './CategoryForm';
+import CategoryView from './CategoryView';
 
 const CategoryIndex = ({isLoggedIn,authUser,configure}) => {
     const stackStyle={
@@ -18,6 +19,11 @@ const CategoryIndex = ({isLoggedIn,authUser,configure}) => {
                 <Routes>
                     <Route path='/' element={<CategoryList authUser={authUser} configure={configure}/>}></Route>
                     <Route path='/category/edit/:categoryId' element={<CategoryForm edit={true}/>}></Route>
+                    {/* ✅ New route for viewing products in a category */}
+                    <Route
+                        path="/category/view/:id"
+                        element={<CategoryView />}
+                    />
                 </Routes>
             }
     </Stack>

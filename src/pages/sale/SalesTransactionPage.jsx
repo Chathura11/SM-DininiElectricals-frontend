@@ -249,7 +249,7 @@ const SalesTransactionPage = () => {
                   </Grid>
                 )}
 
-                {tx.status !== "Cancelled" && (
+                {(tx.status !== "Cancelled" && tx.status !== "Returned"  ) && (
                   <Grid item>
                     <Button
                       variant="outlined"

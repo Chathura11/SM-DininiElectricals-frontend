@@ -49,8 +49,8 @@ const CategoryList = ({configure}) => {
     }
   }, [])
 
-  function handleCardClick(data){
-    console.log(data);
+  function handleCardClick(category){
+    navigate('/categories/category/view/'+category._id, { state: category });
   }
   
 return (
