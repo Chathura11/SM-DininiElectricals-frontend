@@ -6,6 +6,8 @@ import axiosInstance from '../../api/api'; // Make sure axiosInstance is configu
 import { blueGrey, teal } from '@mui/material/colors';
 import { useNavigate } from 'react-router-dom';
 import SupplierPaymentPage from './SupplierPaymentPage';
+import MoneyAssetPage from './MoneyAssetPage';
+import ExpensePage from './ExpensePage';
 
 const AccountHandlePage = ({authUser}) => {
   const [accounts, setAccounts] = useState([]);
@@ -13,13 +15,15 @@ const AccountHandlePage = ({authUser}) => {
     amount: '',
     source: '',
     target: '',
-    description: ''
+    description: '',
+    userId :''
   });
   const [expenseData, setExpenseData] = useState({
     amount: '',
     category: '',
     paidFrom: '',
-    description: ''
+    description: '',
+    userId:''
   });
   const navigate = useNavigate();
   const[loading,setLoading] = useState(false);
@@ -41,6 +45,7 @@ const AccountHandlePage = ({authUser}) => {
   };
 
   const handleMoneyAssetSubmit = async () => {
+    moneyAssetData.userId = authUser._id;
     try {
       setLoading(true);
       await axiosInstance.post('/accounts/add-asset', moneyAssetData);
@@ -49,7 +54,8 @@ const AccountHandlePage = ({authUser}) => {
         amount: '',
         category: '',
         paidFrom: '',
-        description: ''
+        description: '',
+        userId:''
       })
     } catch (err) {
       alert('Error: ' + err.response?.data?.message || err.message);
@@ -60,6 +66,7 @@ const AccountHandlePage = ({authUser}) => {
   };
 
   const handleExpenseSubmit = async () => {
+    expenseData.userId =authUser._id;
     try {
       setLoading(true);
       await axiosInstance.post('/accounts/add-expense', expenseData);
@@ -68,7 +75,8 @@ const AccountHandlePage = ({authUser}) => {
         amount: '',
         category: '',
         paidFrom: '',
-        description: ''
+        description: '',
+        userId:''
       })
     } catch (err) {
       alert('Error: ' + err.response?.data?.message || err.message);
@@ -108,54 +116,7 @@ const AccountHandlePage = ({authUser}) => {
             <Box sx={{backgroundColor:blueGrey[900],pl:1}}>
                 <Typography sx={{color:'white'}} variant="h6" mb={2}>Add Money Asset</Typography>
             </Box>
-            <TextField
-              fullWidth
-              label="Amount"
-              name="amount"
-              value={moneyAssetData.amount}
-              onChange={handleMoneyAssetChange}
-              type="number"
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              select
-              label="Source Account"
-              name="source"
-              value={moneyAssetData.source}
-              onChange={handleMoneyAssetChange}
-              sx={{ mb: 2 }}
-            >
-              {accounts.filter(acc => acc.name === "Owner's Equity").map(acc => (
-                <MenuItem key={acc._id} value={acc.name}>{acc.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              fullWidth
-              select
-              label="Target Account"
-              name="target"
-              value={moneyAssetData.target}
-              onChange={handleMoneyAssetChange}
-              sx={{ mb: 2 }}
-            >
-              {accounts.filter(acc => acc.name === "Cash").map(acc => (
-                <MenuItem key={acc._id} value={acc.name}>{acc.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              fullWidth
-              label="Description"
-              name="description"
-              value={moneyAssetData.description}
-              onChange={handleMoneyAssetChange}
-              sx={{ mb: 2 }}
-            />
-            <Box sx={{textAlign:'end'}}>
-                <Button variant="contained" sx={{width:'200px'}} onClick={handleMoneyAssetSubmit} disabled={loading}>
-                    Submit Money Asset
-                </Button>
-            </Box>
+            <MoneyAssetPage authUser={authUser}/>
           </Paper>
         </Grid>
 
@@ -165,55 +126,7 @@ const AccountHandlePage = ({authUser}) => {
             <Box sx={{backgroundColor:blueGrey[900],pl:1}}>
                 <Typography sx={{color:'white'}} variant="h6" mb={2}>Add Expense</Typography>
             </Box>
-            
-            <TextField
-              fullWidth
-              label="Amount"
-              name="amount"
-              value={expenseData.amount}
-              onChange={handleExpenseChange}
-              type="number"
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              select
-              label="Expense Category"
-              name="category"
-              value={expenseData.category}
-              onChange={handleExpenseChange}
-              sx={{ mb: 2 }}
-            >
-              {accounts.filter(acc => acc.type === 'Expense' && acc.name !== 'COGS').map(acc => (
-                <MenuItem key={acc._id} value={acc.name}>{acc.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              fullWidth
-              select
-              label="Paid From"
-              name="paidFrom"
-              value={expenseData.paidFrom}
-              onChange={handleExpenseChange}
-              sx={{ mb: 2 }}
-            >
-              {accounts.filter(acc => acc.name === 'Cash').map(acc => (
-                <MenuItem key={acc._id} value={acc.name}>{acc.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              fullWidth
-              label="Description"
-              name="description"
-              value={expenseData.description}
-              onChange={handleExpenseChange}
-              sx={{ mb: 2 }}
-            />
-            <Box sx={{textAlign:'end'}}>
-                <Button variant="contained" sx={{width:'200px'}} onClick={handleExpenseSubmit} disabled={loading}>
-                    Submit Expense
-                </Button>
-            </Box>
+            <ExpensePage authUser={authUser}/>
           </Paper>
         </Grid>
       </Grid>
