@@ -218,6 +218,7 @@ const SalesTransactionPage = () => {
         <Grid container direction="column" spacing={3}>
           {filtered.map((tx) => (
             <Paper key={tx._id} sx={{ p: 3 }}>
+              <Typography><strong>Invoice No:</strong> {tx.invoiceNo}</Typography>
               <Typography><strong>Date:</strong> {new Date(tx.createdAt).toLocaleString()}</Typography>
               <Typography><strong>Customer:</strong> {tx.customerName}</Typography>
               <Typography><strong>Status:</strong> {tx.status}</Typography>

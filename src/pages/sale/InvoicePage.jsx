@@ -52,7 +52,8 @@ const InvoicePage = () => {
 
         {/* INFO */}
         <Box sx={{ mb: 2 }}>
-          <Typography><strong>Invoice ID:</strong> {transaction._id}</Typography>
+          <Typography><strong>ID:</strong> {transaction._id}</Typography>
+          <Typography><strong>Invoice No:</strong> {transaction.invoiceNo}</Typography>
           <Typography><strong>Customer:</strong> {transaction.customerName || 'Walk-in'}</Typography>
           <Typography><strong>Cashier:</strong> {transaction.user?.username || 'N/A'}</Typography>
           <Typography><strong>Date:</strong> {new Date(transaction.createdAt).toLocaleString()}</Typography>
