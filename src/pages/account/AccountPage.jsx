@@ -17,7 +17,7 @@ import axios from '../../api/api'; // Adjust based on your structure
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { blueGrey, red, teal } from '@mui/material/colors';
+import { blueGrey, orange, red, teal } from '@mui/material/colors';
 
 const AccountPage = () => {
   const [accounts, setAccounts] = useState([]);
@@ -48,6 +48,10 @@ const AccountPage = () => {
     navigate('/accounts/journal')
   }
 
+  function handleAnalytics(){
+    navigate('/accounts/analytics')
+  }
+
   const exportToExcel = () => {
     const formatted = accounts.map(account => ({
       AccountName: account.name,
@@ -75,6 +79,9 @@ const AccountPage = () => {
         </Button>
         <Button variant="contained" sx={{width:'200px',mr:2,backgroundColor:teal[500]}} onClick={handleJournal}>
             Journal
+        </Button>
+        <Button variant="contained" sx={{width:'200px',mr:2,backgroundColor:orange[500]}} onClick={handleAnalytics}>
+            Analytics
         </Button>
         <Button variant="contained" sx={{width:'200px',backgroundColor:red[700]}} onClick={handleManageAccount}>
             Manage Accounts

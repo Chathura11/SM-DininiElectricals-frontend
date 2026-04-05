@@ -6,6 +6,7 @@ import AccountPage from './AccountPage'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AccountHandlePage from './AccountHandlePage'
 import AccountJournalPage from './AccountJournalPage'
+import AnalyticsPage from './AnalyticsPage'
 
 function AccountIndex({isLoggedIn,authUser}) {
   
@@ -18,7 +19,8 @@ function AccountIndex({isLoggedIn,authUser}) {
         <SaleHeader tag={'Accounts'} icon={<AccountBalanceIcon  sx={{width: 40, height: 40}}/>}/>  
             {isLoggedIn&&authUser&&
                 <Routes>     
-                    <Route path='/manage' element={<AccountHandlePage authUser={authUser}/>}></Route>               
+                    <Route path='/analytics' element={<AnalyticsPage authUser={authUser}/>}></Route>    
+                    <Route path='/manage' element={<AccountHandlePage authUser={authUser}/>}></Route>            
                     <Route path='/journal' element={<AccountJournalPage authUser={authUser}/>}></Route>               
                     <Route path='/' element={<AccountPage authUser={authUser}/>}></Route>                   
                 </Routes>
