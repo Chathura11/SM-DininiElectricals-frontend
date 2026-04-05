@@ -1,27 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, LinearProgress, Box } from '@mui/material';
+import {
+  Paper, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Typography, LinearProgress, Box
+} from '@mui/material';
 import axiosInstance from '../../api/api';
 
 const CategoryView = () => {
-  const { state } = useLocation(); // category data from CategoryList
-  const { id } = useParams();      // category ID from URL
+  const { state } = useLocation();
+  const { id } = useParams();
+
   const [products, setProducts] = useState([]);
+  const [inventoryMap, setInventoryMap] = useState({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadProducts() {
+    async function loadData() {
       try {
-        const res = await axiosInstance.get('/products'); // fetch all products
-        const filtered = res.data.data.filter(p => p.category?._id === id);
-        setProducts(filtered);
+        setIsLoading(true);
+
+        // 🔹 Fetch products & inventories together
+        const [productRes, inventoryRes] = await Promise.all([
+          axiosInstance.get('/products'),
+          axiosInstance.get('/inventories')
+        ]);
+
+        // 🔹 Filter products by category
+        const filteredProducts = productRes.data.data.filter(
+          p => p.category?._id === id
+        );
+
+        setProducts(filteredProducts);
+
+        // 🔹 Create inventory map: { productId: quantity }
+        const inventoryData = inventoryRes.data.data;
+        const map = {};
+
+        inventoryData.forEach(item => {
+          if (item.product?._id) {
+            map[item.product._id] = item.quantity;
+          }
+        });
+
+        setInventoryMap(map);
+
       } catch (err) {
         console.error(err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
 
-    loadProducts();
+    loadData();
   }, [id]);
 
   return (
@@ -49,6 +79,7 @@ const CategoryView = () => {
                 <TableCell>Stock</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {products.map((p) => (
                 <TableRow key={p._id}>
@@ -56,11 +87,22 @@ const CategoryView = () => {
                   <TableCell>{p.code}</TableCell>
                   <TableCell>{p.brand?.name || '-'}</TableCell>
                   <TableCell>{p.category?.name || '-'}</TableCell>
-                  <TableCell>{Number(p.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                  <TableCell>{p.stock || 0}</TableCell>
+                  <TableCell>
+                    {Number(p.price).toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </TableCell>
+
+                  {/* ✅ Correct Stock from Inventory */}
+                  <TableCell>
+                    {inventoryMap[p._id] ?? 0}
+                  </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
+
           </Table>
         </TableContainer>
       )}
