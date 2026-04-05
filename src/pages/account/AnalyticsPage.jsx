@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Paper, Typography, Box, Grid, Button, MenuItem, Select,
-  CircularProgress, Table, TableBody, TableCell, TableHead, TableRow
+  Grid, Paper, Typography, Table, TableHead, TableRow,
+  TableCell, TableBody, Button, CircularProgress, Box, Select, MenuItem
 } from '@mui/material';
-import { blueGrey, teal, red } from '@mui/material/colors';
+import { blueGrey, teal, red, orange } from '@mui/material/colors';
 import axios from '../../api/api';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -11,77 +11,72 @@ import { useNavigate } from 'react-router-dom';
 
 const AnalyticsPage = () => {
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [year, setYear] = useState(new Date().getFullYear());
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchData();
-  }, [year]);
-
   const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await axios.get(`/accounts/analytics?year=${year}`);
-      setData(res.data || []);
+      setData(res.data);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching analytics:', err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, [year]);
+
+  // Totals
   const totalSales = data.reduce((a, b) => a + (b.sales || 0), 0);
   const totalExpenses = data.reduce((a, b) => a + (b.totalExpenses || 0), 0);
   const totalProfit = data.reduce((a, b) => a + (b.profit || 0), 0);
 
-  const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(data.map(d => ({
+  // Excel Export
+  const exportToExcel = () => {
+    const formatted = data.map(d => ({
       Month: d.month,
-      Sales: d.sales || 0,
-      Expenses: d.totalExpenses || 0,
-      Profit: d.profit || 0
-    })));
+      Sales: d.sales.toFixed(2),
+      'Salary Expense': d.salaryExp.toFixed(2),
+      'Additional Expense': d.additionalExp.toFixed(2),
+      'Total Expenses': d.totalExpenses.toFixed(2),
+      Profit: d.profit.toFixed(2),
+    }));
+    const ws = XLSX.utils.json_to_sheet(formatted);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Analytics');
-
-    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([buffer]), `Analytics_${year}.xlsx`);
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    saveAs(new Blob([excelBuffer]), `Analytics_${year}.xlsx`);
   };
 
-  const handleBack = () => {
-    navigate('/accounts');
-  };
+  // Navigation
+  const handleBack = () => navigate('/accounts');
 
   return (
-    <Paper sx={{ p: 4, borderRadius: 2, boxShadow: 3 }}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        fontWeight={700}
-        textAlign="center"
-        color="primary"
-        mb={4}
-      >
+    <Paper sx={{ padding: 3 }}>
+      <Typography variant="h4" gutterBottom fontWeight={700} textAlign="center" color="primary" mb={4}>
         Analytics Dashboard
       </Typography>
 
-      {/* Year selector and Export */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      {/* Year selector and buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Select value={year} onChange={(e) => setYear(e.target.value)}>
           {[2023, 2024, 2025, 2026].map(y => (
             <MenuItem key={y} value={y}>{y}</MenuItem>
           ))}
         </Select>
-        <Box sx={{ textAlign: 'end', mb: 2 }}>
-            <Button variant="contained" onClick={exportExcel}>
-            Download Excel
-            </Button>
-            <Button variant="contained" sx={{ width: '200px', ml: 2 }} onClick={handleBack}>
+        <Box>
+          <Button variant="contained" sx={{ width: 200, mr: 2 }} onClick={exportToExcel}>
+            EXPORT TO EXCEL
+          </Button>
+          <Button variant="contained" sx={{ width: 200, backgroundColor: red[700] }} onClick={handleBack}>
             Back
-            </Button>
+          </Button>
         </Box>
-        
       </Box>
 
       {loading ? (
@@ -91,51 +86,49 @@ const AnalyticsPage = () => {
       ) : (
         <>
           {/* Summary Cards */}
-          <Grid container spacing={3} mb={3}>
-            <Grid item xs={12} sm={4}>
-              <Paper sx={{ p: 3, borderLeft: `6px solid ${teal[500]}`, boxShadow: 2 }}>
-                <Typography variant="subtitle1" color="textSecondary">Sales</Typography>
-                <Typography variant="h5" fontWeight={700}>
-                  LKR {totalSales.toLocaleString()}
-                </Typography>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={4}>
+              <Paper variant='outlined' sx={{ p: 3, borderLeft: `6px solid ${teal[500]}` }}>
+                <Typography variant="h6" color="textSecondary">Total Sales</Typography>
+                <Typography variant="h4" fontWeight={700}>LKR {totalSales.toFixed(2)}</Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Paper sx={{ p: 3, borderLeft: `6px solid ${red[700]}`, boxShadow: 2 }}>
-                <Typography variant="subtitle1" color="textSecondary">Expenses</Typography>
-                <Typography variant="h5" fontWeight={700}>
-                  LKR {totalExpenses.toLocaleString()}
-                </Typography>
+            <Grid item xs={12} md={4}>
+              <Paper variant='outlined' sx={{ p: 3, borderLeft: `6px solid ${orange[500]}` }}>
+                <Typography variant="h6" color="textSecondary">Total Expenses</Typography>
+                <Typography variant="h4" fontWeight={700}>LKR {totalExpenses.toFixed(2)}</Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Paper sx={{ p: 3, borderLeft: `6px solid ${teal[800]}`, boxShadow: 2 }}>
-                <Typography variant="subtitle1" color="textSecondary">Profit</Typography>
-                <Typography variant="h5" fontWeight={700}>
-                  LKR {totalProfit.toLocaleString()}
-                </Typography>
+            <Grid item xs={12} md={4}>
+              <Paper variant='outlined' sx={{ p: 3, borderLeft: `6px solid ${red[700]}` }}>
+                <Typography variant="h6" color="textSecondary">Total Profit</Typography>
+                <Typography variant="h4" fontWeight={700}>LKR {totalProfit.toFixed(2)}</Typography>
               </Paper>
             </Grid>
           </Grid>
 
           {/* Analytics Table */}
-          <Paper sx={{ overflowX: 'auto', borderRadius: 2, boxShadow: 2 }}>
-            <Table sx={{ borderCollapse: 'collapse', minWidth: 650 }}>
-              <TableHead sx={{ backgroundColor: blueGrey[50] }}>
+          <Paper variant='outlined'>
+            <Table>
+              <TableHead sx={{ backgroundColor: blueGrey[100] }}>
                 <TableRow>
-                  <TableCell sx={{ border: '1px solid rgba(224,224,224,1)' }}><strong>Month</strong></TableCell>
-                  <TableCell align="right" sx={{ border: '1px solid rgba(224,224,224,1)' }}><strong>Sales (LKR)</strong></TableCell>
-                  <TableCell align="right" sx={{ border: '1px solid rgba(224,224,224,1)' }}><strong>Expenses (LKR)</strong></TableCell>
-                  <TableCell align="right" sx={{ border: '1px solid rgba(224,224,224,1)' }}><strong>Profit (LKR)</strong></TableCell>
+                  <TableCell><strong>Month</strong></TableCell>
+                  <TableCell><strong>Sales</strong></TableCell>
+                  <TableCell><strong>Salary Expense</strong></TableCell>
+                  <TableCell><strong>Additional Expense</strong></TableCell>
+                  <TableCell><strong>Total Expenses</strong></TableCell>
+                  <TableCell><strong>Profit</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {data.map((d, i) => (
-                  <TableRow key={i} sx={{ '&:hover': { backgroundColor: blueGrey[50] } }}>
-                    <TableCell sx={{ border: '1px solid rgba(224,224,224,1)' }}>{d.month}</TableCell>
-                    <TableCell align="right" sx={{ border: '1px solid rgba(224,224,224,1)' }}>{(d.sales || 0).toLocaleString()}</TableCell>
-                    <TableCell align="right" sx={{ border: '1px solid rgba(224,224,224,1)' }}>{(d.totalExpenses || 0).toLocaleString()}</TableCell>
-                    <TableCell align="right" sx={{ border: '1px solid rgba(224,224,224,1)' }}>{(d.profit || 0).toLocaleString()}</TableCell>
+                  <TableRow key={i} hover>
+                    <TableCell>{d.month}</TableCell>
+                    <TableCell>{d.sales.toFixed(2)}</TableCell>
+                    <TableCell>{d.salaryExp.toFixed(2)}</TableCell>
+                    <TableCell>{d.additionalExp.toFixed(2)}</TableCell>
+                    <TableCell>{d.totalExpenses.toFixed(2)}</TableCell>
+                    <TableCell>{d.profit.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
