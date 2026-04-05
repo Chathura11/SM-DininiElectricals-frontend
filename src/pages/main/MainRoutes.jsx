@@ -16,6 +16,7 @@ import SalesPage from '../sale/SalePage'
 import DashboardIndex from '../dashboard/DashboardIndex'
 import AccountIndex from '../account/AccountIndex'
 import SalesReturnIndex from '../salesReturn/SalesReturnIndex'
+import AccessDeniedPage from '../../components/AccessDeniedPage'
 
 
 const drawerWidth = 500
@@ -81,7 +82,7 @@ const DashboardRoutes = () => {
                                 <Route path='/sales-return/*' element={<SalesReturnIndex isLoggedIn={isLoggedIn} authUser={authUser}/>} />
                                 <Route path='/dashboard/*' element={<DashboardIndex isLoggedIn={isLoggedIn} authUser={authUser}/>} />
                                 <Route path='/inventories/*' element={<InventoryIndex isLoggedIn={isLoggedIn} authUser={authUser}/>} />
-                                <Route path='/accounts/*' element={<AccountIndex isLoggedIn={isLoggedIn} authUser={authUser}/>} />
+                                <Route path='/accounts/*' element={authUser&&(authUser.role==='admin'||authUser.role==='superAdmin')?<AccountIndex isLoggedIn={isLoggedIn} authUser={authUser}/>:<AccessDeniedPage/>} />
                                 {/* <Route path='/sale-test/*' element={<SalesPage isLoggedIn={isLoggedIn} authUser={authUser}/>} /> */}
                                 {/* <Route path='/barcode/*' element={<BarcodeReader/>} /> */}
                                 {/* <Route path='/contact/*' element={<ContactIndex/>} /> */}

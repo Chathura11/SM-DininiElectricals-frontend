@@ -256,40 +256,77 @@ const SideNavigation = ({isLoggedIn,authUser,logOut}) => {
                     </IconButton>
                 </DrawerHeader>
                 <Divider />
-                  <List>
-                    {['Sell', 'Dashboard', 'Categories', 'Brands', 'Inventory','Sale Transactions','Sales Return','View Sales Returns','Accounts'].map((text, index) => (
-                      <ListItem key={text} disablePadding sx={{ display: 'block' }}>
-                        <ListItemButton
-                          sx={{
-                            minHeight: 60,
-                            justifyContent: open ? 'initial' : 'center',
-                            px: 2.5,
-                          }}
-                          onClick={() => mainListItemButtonsHandle(index)}
-                        >
-                          <ListItemIcon
+                  {
+                    authUser&&(authUser.role ==='superAdmin' || authUser.role ==='admin')?
+                    <List>
+                      {['Sell', 'Dashboard', 'Categories', 'Brands', 'Inventory','Sale Transactions','Sales Return','View Sales Returns','Accounts'].map((text, index) => (
+                        <ListItem key={text} disablePadding sx={{ display: 'block' }}>
+                          <ListItemButton
                             sx={{
-                              minWidth: 0,
-                              mr: open ? 3 : 'auto',
-                              justifyContent: 'center',
+                              minHeight: 60,
+                              justifyContent: open ? 'initial' : 'center',
+                              px: 2.5,
                             }}
+                            onClick={() => mainListItemButtonsHandle(index)}
                           >
-                            {index === 0 ? <AddShoppingCartIcon /> 
-                            : index === 1 ? <DashboardOutlinedIcon /> 
-                            : index === 2 ? <TableViewOutlinedIcon /> 
-                            : index === 3 ? <StyleOutlinedIcon />
-                            : index === 4 ?<Inventory2OutlinedIcon />
-                            : index === 5 ?<PointOfSaleIcon />
-                            : index === 6 ?<CompareArrowsOutlinedIcon />
-                            : index === 7 ?<AssignmentReturnOutlinedIcon />
-                            :<AccountBalanceOutlinedIcon/>
-                          }
-                          </ListItemIcon>
-                          <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
-                  </List>
+                            <ListItemIcon
+                              sx={{
+                                minWidth: 0,
+                                mr: open ? 3 : 'auto',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              {index === 0 ? <AddShoppingCartIcon /> 
+                              : index === 1 ? <DashboardOutlinedIcon /> 
+                              : index === 2 ? <TableViewOutlinedIcon /> 
+                              : index === 3 ? <StyleOutlinedIcon />
+                              : index === 4 ?<Inventory2OutlinedIcon />
+                              : index === 5 ?<PointOfSaleIcon />
+                              : index === 6 ?<CompareArrowsOutlinedIcon />
+                              : index === 7 ?<AssignmentReturnOutlinedIcon />
+                              :<AccountBalanceOutlinedIcon/>
+                            }
+                            </ListItemIcon>
+                            <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
+                          </ListItemButton>
+                        </ListItem>
+                      ))}
+                    </List>
+                    :
+                    <List>
+                      {['Sell', 'Dashboard', 'Categories', 'Brands', 'Inventory','Sale Transactions','Sales Return','View Sales Returns'].map((text, index) => (
+                        <ListItem key={text} disablePadding sx={{ display: 'block' }}>
+                          <ListItemButton
+                            sx={{
+                              minHeight: 60,
+                              justifyContent: open ? 'initial' : 'center',
+                              px: 2.5,
+                            }}
+                            onClick={() => mainListItemButtonsHandle(index)}
+                          >
+                            <ListItemIcon
+                              sx={{
+                                minWidth: 0,
+                                mr: open ? 3 : 'auto',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              {index === 0 ? <AddShoppingCartIcon /> 
+                              : index === 1 ? <DashboardOutlinedIcon /> 
+                              : index === 2 ? <TableViewOutlinedIcon /> 
+                              : index === 3 ? <StyleOutlinedIcon />
+                              : index === 4 ?<Inventory2OutlinedIcon />
+                              : index === 5 ?<PointOfSaleIcon />
+                              : index === 6 ?<CompareArrowsOutlinedIcon />
+                              :<AssignmentReturnOutlinedIcon />
+                            }
+                            </ListItemIcon>
+                            <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
+                          </ListItemButton>
+                        </ListItem>
+                      ))}
+                    </List>
+                  }
             </Drawer>
         </Stack>
 
