@@ -218,8 +218,12 @@ const SalesPage = ({ authUser }) => {
             label="Product Code"
             value={selectedProduct?.code || ''}
             onChange={(e) => {
-              const product = products.find(p => p.code === e.target.value);
-              setSelectedProduct(product || null);
+              const code = e.target.value;
+
+              // Try to find a product matching the code
+              const product = products.find(p => p.code.toLowerCase() === code.toLowerCase());
+
+              setSelectedProduct(product || { code }); // keep code typed even if not found
             }}
           />
         </Grid>
