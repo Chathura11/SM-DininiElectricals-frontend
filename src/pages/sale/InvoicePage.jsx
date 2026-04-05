@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { Button, Typography, Paper, Divider, Stack, Box } from '@mui/material';
 import axiosInstance from '../../api/api';
 import { useReactToPrint } from 'react-to-print';
-// import logo from '../../assets/logo1.png';
 import logoName from '../../assets/back3.png';
 
 const InvoicePage = () => {
@@ -28,14 +27,22 @@ const InvoicePage = () => {
     contentRef: componentRef,
   });
 
+  console.log(items)
+
   if (!transaction) return <Typography>Loading invoice...</Typography>;
 
+  // ✅ CALCULATIONS WITH ITEM DISCOUNT
   const subtotal = items.reduce(
-    (sum, item) => sum + item.quantity * item.sellingPrice,
+    (sum, item) => sum + (item.quantity * item.sellingPrice),
     0
   );
 
-  const netTotal = subtotal - (transaction.discount || 0);
+  const totalItemDiscount = items.reduce(
+    (sum, item) => sum + (item.discount || 0),
+    0
+  );
+
+  const netTotal = subtotal - totalItemDiscount;
 
   return (
     <Paper sx={{ p: 4, margin: 'auto' }}>
@@ -43,7 +50,6 @@ const InvoicePage = () => {
 
         {/* HEADER */}
         <Stack alignItems="center" spacing={1} sx={{ mb: 2 }}>
-          {/* <img src={logo} alt="logo" style={{ width: 80 }} /> */}
           <img src={logoName} alt="logo name" style={{ width: 180 }} />
           <Typography variant="h5" fontWeight="bold">INVOICE</Typography>
         </Stack>
@@ -72,21 +78,29 @@ const InvoicePage = () => {
               <th>Brand</th>
               <th>Qty</th>
               <th>Unit Price</th>
+              <th>Discount</th>
               <th>Total</th>
             </tr>
           </thead>
 
           <tbody>
-            {items.map((item, i) => (
-              <tr key={i}>
-                <td>{item.product?.name || 'N/A'}</td>
-                <td>{item.product?.category?.name || 'N/A'}</td>
-                <td>{item.product?.brand?.name || 'N/A'}</td>
-                <td>{item.quantity}</td>
-                <td>Rs. {item.sellingPrice.toFixed(2)}</td>
-                <td>Rs. {(item.quantity * item.sellingPrice).toFixed(2)}</td>
-              </tr>
-            ))}
+            {items.map((item, i) => {
+              const total = item.quantity * item.sellingPrice;
+              const discount = item.discount || 0;
+              const finalTotal = total - discount;
+
+              return (
+                <tr key={i}>
+                  <td>{item.product?.name || 'N/A'}</td>
+                  <td>{item.product?.category?.name || 'N/A'}</td>
+                  <td>{item.product?.brand?.name || 'N/A'}</td>
+                  <td>{item.quantity}</td>
+                  <td>Rs. {item.sellingPrice.toFixed(2)}</td>
+                  <td>Rs. {discount.toFixed(2)}</td>
+                  <td>Rs. {finalTotal.toFixed(2)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
@@ -95,9 +109,17 @@ const InvoicePage = () => {
         {/* TOTALS */}
         <Box sx={{ textAlign: 'right' }}>
           <Typography><strong>Subtotal:</strong> Rs. {subtotal.toFixed(2)}</Typography>
-          <Typography><strong>Discount:</strong> Rs. {(transaction.discount || 0).toFixed(2)}</Typography>
+          <Typography><strong>Item Discount:</strong> Rs. {totalItemDiscount.toFixed(2)}</Typography>
+
+          {/* OPTIONAL: if you still use transaction discount */}
+          {transaction.discount > 0 && (
+            <Typography>
+              <strong>Extra Discount:</strong> Rs. {transaction.discount.toFixed(2)}
+            </Typography>
+          )}
+
           <Typography variant="h6" sx={{ mt: 1 }}>
-            <strong>Net Total:</strong> Rs. {netTotal.toFixed(2)}
+            <strong>Net Total:</strong> Rs. {(netTotal - (transaction.discount || 0)).toFixed(2)}
           </Typography>
         </Box>
 

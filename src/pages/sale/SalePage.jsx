@@ -13,7 +13,6 @@ const SalesPage = ({ authUser }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [customerName, setCustomerName] = useState('');
-  const [discount, setDiscount] = useState(0);
   const [userId] = useState(authUser);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [status, setStatus] = useState('Completed');
@@ -35,12 +34,11 @@ const SalesPage = ({ authUser }) => {
 
     const inventoryMap = {};
     inventoryRes.data.data.forEach(item => {
-      inventoryMap[item.product._id] = item.quantity; // ✅ changed
+      inventoryMap[item.product._id] = item.quantity;
     });
     setInventory(inventoryMap);
   };
 
-  // ✅ FIFO without size
   const getCostPriceFIFO = async (productId, qty) => {
     try {
       const res = await axiosInstance.get(`/stocks/fifo-cost`, {
@@ -48,26 +46,21 @@ const SalesPage = ({ authUser }) => {
       });
       return res.data.costPrice;
     } catch (error) {
-      console.error('Error fetching cost price:', error);
+      console.error(error);
       return 0;
     }
   };
 
+  // ✅ ADD ITEM WITH DISCOUNT
   const addItem = async () => {
     if (!selectedProduct || quantity < 1) {
-      alert("Please select product and quantity.");
-      return;
+      return alert("Select product & quantity");
     }
 
     const availableQty = inventory[selectedProduct._id] || 0;
-
     if (availableQty < quantity) {
-      return alert("Not enough stock.");
+      return alert("Not enough stock");
     }
-
-    const existingIndex = orderedItems.findIndex(
-      item => item.product._id === selectedProduct._id
-    );
 
     const costPrice = await getCostPriceFIFO(selectedProduct._id, quantity);
     const sellingPrice = selectedProduct.price;
@@ -77,35 +70,64 @@ const SalesPage = ({ authUser }) => {
       quantity,
       sellingPrice,
       costPrice,
-      profit: (sellingPrice - costPrice) * quantity,
+      discountPercent: 0,
+      discountAmount: 0,
+      finalTotal: sellingPrice * quantity,
+      profit: (sellingPrice - costPrice) * quantity
     };
 
-    const newOrdered = [...orderedItems];
-
-    if (existingIndex >= 0) {
-      newOrdered[existingIndex].quantity += quantity;
-      newOrdered[existingIndex].profit += newItem.profit;
-    } else {
-      newOrdered.push(newItem);
-    }
-
-    setOrderedItems(newOrdered);
+    setOrderedItems([...orderedItems, newItem]);
     setQuantity(1);
   };
 
-  const handleSell = async () => {
-    setIsLoading(true);
+  // ✅ HANDLE DISCOUNT CHANGE
+  const handleItemDiscountChange = (index, value) => {
+    const newItems = [...orderedItems];
 
+    let discountPercent = parseFloat(value) || 0;
+    discountPercent = Math.max(0, Math.min(100, discountPercent));
+
+    const item = newItems[index];
+
+    const total = item.sellingPrice * item.quantity;
+    const discountAmount = (total * discountPercent) / 100;
+    const finalTotal = total - discountAmount;
+    const profit = finalTotal - (item.costPrice * item.quantity);
+
+    newItems[index] = {
+      ...item,
+      discountPercent,
+      discountAmount,
+      finalTotal,
+      profit
+    };
+
+    setOrderedItems(newItems);
+  };
+
+  // ✅ REMOVE ITEM
+  const removeItem = (index) => {
+    const newItems = orderedItems.filter((_, i) => i !== index);
+    setOrderedItems(newItems);
+  };
+
+  // ✅ TOTALS
+  const subtotal = orderedItems.reduce((sum, item) => sum + item.finalTotal, 0);
+
+  // ✅ SELL
+  const handleSell = async () => {
     if (orderedItems.length === 0) {
-      setIsLoading(false);
-      return alert("No items to sell.");
+      return alert("No items");
     }
+
+    setIsLoading(true);
 
     const items = orderedItems.map(item => ({
       product: item.product._id,
       quantity: item.quantity,
       sellingPrice: item.sellingPrice,
-      costPrice: item.costPrice
+      costPrice: item.costPrice,
+      discount: item.discountAmount
     }));
 
     try {
@@ -114,40 +136,33 @@ const SalesPage = ({ authUser }) => {
         customerName,
         paymentMethod,
         status,
-        items,
-        discount
+        items
       });
 
       alert("Sale completed!");
-      fetchData();
-      handleClear();
-      setIsLoading(false);
 
+      handleClear();
+      fetchData();
       navigate(`/sell/invoice/${res.data.transaction._id}`);
+
     } catch (err) {
       console.error(err);
-      alert("Failed to complete sale.");
-      setIsLoading(false);
+      alert("Sale failed");
     }
+
+    setIsLoading(false);
   };
 
   const handleClear = () => {
     setOrderedItems([]);
     setCustomerName('');
-    setDiscount(0);
     setQuantity(1);
     setSelectedProduct(null);
   };
 
-  const subtotal = orderedItems.reduce(
-    (sum, item) => sum + item.sellingPrice * item.quantity,
-    0
-  );
-
-  const totalPayable = subtotal - discount;
-
   return (
     <Paper sx={{ p: 4 }}>
+      {/* HEADER */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item size={4}>
           <TextField
@@ -158,19 +173,7 @@ const SalesPage = ({ authUser }) => {
           />
         </Grid>
 
-        <Grid item size={2}>
-          <TextField
-            fullWidth
-            label="Discount (Rs.)"
-            type="number"
-            value={discount}
-            onChange={(e) =>
-              setDiscount(Math.max(0, parseFloat(e.target.value) || 0))
-            }
-          />
-        </Grid>
-
-        <Grid item size={3}>
+        <Grid item size={4}>
           <Select
             fullWidth
             value={paymentMethod}
@@ -182,7 +185,7 @@ const SalesPage = ({ authUser }) => {
           </Select>
         </Grid>
 
-        <Grid item size={3}>
+        <Grid item size={4}>
           <Select
             fullWidth
             value={status}
@@ -195,83 +198,58 @@ const SalesPage = ({ authUser }) => {
         </Grid>
       </Grid>
 
-      {/* Product Selection */}
+      {/* PRODUCT SELECT */}
       <Grid container spacing={2}>
-
         <Grid item size={6}>
           <Autocomplete
-            options={products} // array of products
-            getOptionLabel={(option) => `${option.name} | ${option.code}`} // show name + code
+            options={products}
+            getOptionLabel={(option) => `${option.name} | ${option.code}`}
             value={selectedProduct}
-            onChange={(event, newValue) => setSelectedProduct(newValue)}
-            filterSelectedOptions
+            onChange={(e, val) => setSelectedProduct(val)}
             renderInput={(params) => (
-              <TextField
-                fullWidth
-                {...params}
-                label="Select Product"
-                placeholder="Type name or code"
-              />
+              <TextField {...params} label="Select Product" />
             )}
-            isOptionEqualToValue={(option, value) => option._id === value._id}
           />
         </Grid>
 
-        {/* Product Code Input */}
-        <Grid item size={4}>
+        <Grid item size={3}>
           <TextField
             fullWidth
             label="Product Code"
             value={selectedProduct?.code || ''}
             onChange={(e) => {
-              const code = e.target.value;
-              const product = products.find(p => p.code === code);
-              if (product) setSelectedProduct(product);
-              else setSelectedProduct({ code }); // allows typing even if not matched yet
+              const product = products.find(p => p.code === e.target.value);
+              setSelectedProduct(product || null);
             }}
           />
         </Grid>
 
-        <Grid item size={2}>
+        <Grid item size={1}>
           <TextField
-            fullWidth
             type="number"
             value={quantity}
-            onChange={(e) =>
-              setQuantity(Math.max(1, parseInt(e.target.value)))
-            }
-            label="Quantity"
+            onChange={(e) => setQuantity(Math.max(1, +e.target.value))}
           />
         </Grid>
 
         <Grid item size={2}>
-          <Typography>
-            Price: Rs. {selectedProduct && selectedProduct.price ? selectedProduct.price.toFixed(2) : '0.00'}
-          </Typography>
-        </Grid>
-
-        <Grid item size={2}>
-          <Typography>
-            Stock: {inventory[selectedProduct?._id] || 0}
-          </Typography>
-        </Grid>
-
-        <Grid item size={2}>
-          <Button fullWidth onClick={addItem} variant="contained">
-            Add Item
+          <Button fullWidth variant="contained" onClick={addItem}>
+            Add
           </Button>
         </Grid>
       </Grid>
 
-      {/* Table */}
+      {/* TABLE */}
       <TableContainer component={Paper} sx={{ mt: 3 }}>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Product</TableCell>
               <TableCell>Qty</TableCell>
-              <TableCell>Unit Price</TableCell>
-              <TableCell>Total Price</TableCell>
+              <TableCell>Price</TableCell>
+              <TableCell>Discount %</TableCell>
+              <TableCell>Total</TableCell>
+              <TableCell>Action</TableCell>
             </TableRow>
           </TableHead>
 
@@ -281,8 +259,24 @@ const SalesPage = ({ authUser }) => {
                 <TableCell>{item.product.name}</TableCell>
                 <TableCell>{item.quantity}</TableCell>
                 <TableCell>{item.sellingPrice.toFixed(2)}</TableCell>
+
                 <TableCell>
-                  {(item.sellingPrice * item.quantity).toFixed(2)}
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={item.discountPercent}
+                    onChange={(e) =>
+                      handleItemDiscountChange(i, e.target.value)
+                    }
+                  />
+                </TableCell>
+
+                <TableCell>{item.finalTotal.toFixed(2)}</TableCell>
+
+                <TableCell>
+                  <Button color="error" onClick={() => removeItem(i)}>
+                    Remove
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -290,13 +284,11 @@ const SalesPage = ({ authUser }) => {
         </Table>
       </TableContainer>
 
-      {/* Totals */}
+      {/* TOTAL */}
       <Grid container justifyContent="flex-end" sx={{ mt: 2 }}>
         <Grid item size={4}>
-          <Typography>Subtotal: Rs. {subtotal.toFixed(2)}</Typography>
-          <Typography>Discount: Rs. {discount.toFixed(2)}</Typography>
-          <Typography variant="h5">
-            Total: Rs. {totalPayable.toFixed(2)}
+          <Typography variant="h6">
+            Total: Rs. {subtotal.toFixed(2)}
           </Typography>
 
           <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -304,7 +296,6 @@ const SalesPage = ({ authUser }) => {
               <Button
                 fullWidth
                 variant="contained"
-                color="success"
                 onClick={handleSell}
                 disabled={isLoading}
               >
@@ -313,11 +304,7 @@ const SalesPage = ({ authUser }) => {
             </Grid>
 
             <Grid item size={6}>
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={handleClear}
-              >
+              <Button fullWidth onClick={handleClear}>
                 Clear
               </Button>
             </Grid>

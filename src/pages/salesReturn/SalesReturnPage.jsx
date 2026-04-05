@@ -31,12 +31,15 @@ const SalesReturnPage = ({ authUser }) => {
       setTransactionDetails(salesRes.data.transaction || null);
       setPreviousReturns(returnRes.data.data || []);
 
-      // Initialize return items (NO SIZE)
+      // ✅ UPDATED: include price + discount
       setReturnItems(
         salesItems.map(item => ({
           product: item.product._id,
           quantity: 0,
-          reason: ''
+          reason: '',
+          sellingPrice: item.sellingPrice,
+          costPrice: item.costPrice,
+          discount: item.discount || 0,
         }))
       );
 
@@ -47,12 +50,27 @@ const SalesReturnPage = ({ authUser }) => {
     setLoading(false);
   };
 
+  // ✅ VALIDATION WITH PREVIOUS RETURNS
   const handleQuantityChange = (index, value) => {
     const qty = Number(value);
-    const maxQty = items[index]?.quantity || 0;
+    const item = items[index];
 
-    if (qty > maxQty) {
-      alert(`Cannot return more than sold quantity (${maxQty})`);
+    const soldQty = item.quantity;
+
+    let alreadyReturned = 0;
+
+    previousReturns.forEach(ret => {
+      ret.items.forEach(rItem => {
+        if (rItem.product === item.product._id) {
+          alreadyReturned += rItem.quantity;
+        }
+      });
+    });
+
+    const remainingQty = soldQty - alreadyReturned;
+
+    if (qty > remainingQty) {
+      alert(`Max returnable qty: ${remainingQty}`);
       return;
     }
 
@@ -67,8 +85,29 @@ const SalesReturnPage = ({ authUser }) => {
     setReturnItems(updated);
   };
 
+  // ✅ CALCULATE RETURN TOTAL (AFTER DISCOUNT)
+  const calculateReturnTotal = () => {
+    return returnItems.reduce((sum, item) => {
+      if (item.quantity > 0) {
+        const total = item.sellingPrice * item.quantity;
+        const discount = item.discount || 0;
+        return sum + (total - discount);
+      }
+      return sum;
+    }, 0);
+  };
+
   const handleSubmit = async () => {
-    const filtered = returnItems.filter(i => i.quantity > 0);
+    const filtered = returnItems
+      .filter(i => i.quantity > 0)
+      .map(i => ({
+        product: i.product,
+        quantity: i.quantity,
+        reason: i.reason,
+        sellingPrice: i.sellingPrice,
+        costPrice: i.costPrice,
+        discount: i.discount
+      }));
 
     if (!transactionId.trim() || filtered.length === 0) {
       return alert('Please enter a transaction ID and valid return quantities.');
@@ -127,21 +166,11 @@ const SalesReturnPage = ({ authUser }) => {
         <Paper variant="outlined" sx={{ p: 2, mb: 3, backgroundColor: blueGrey[50] }}>
           <Typography variant="h6" gutterBottom>Transaction Details</Typography>
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <strong>Customer:</strong> {transactionDetails.customerName || 'Walk-in'}
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <strong>Date:</strong> {new Date(transactionDetails.createdAt).toLocaleString()}
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <strong>Total:</strong> {transactionDetails.totalAmount?.toFixed(2) || '0.00'} LKR
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <strong>Discount:</strong> {transactionDetails.discount?.toFixed(2) || '0.00'} LKR
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <strong>Status:</strong> {transactionDetails.status}
-            </Grid>
+            <Grid item xs={4}><strong>Customer:</strong> {transactionDetails.customerName || 'Walk-in'}</Grid>
+            <Grid item xs={4}><strong>Date:</strong> {new Date(transactionDetails.createdAt).toLocaleString()}</Grid>
+            <Grid item xs={4}><strong>Total:</strong> {transactionDetails.totalAmount?.toFixed(2)} LKR</Grid>
+            <Grid item xs={4}><strong>Discount:</strong> {transactionDetails.discount?.toFixed(2) || '0.00'} LKR</Grid>
+            <Grid item xs={4}><strong>Status:</strong> {transactionDetails.status}</Grid>
           </Grid>
         </Paper>
       )}
@@ -149,23 +178,12 @@ const SalesReturnPage = ({ authUser }) => {
       {/* PREVIOUS RETURNS */}
       {previousReturns.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" color="secondary" gutterBottom>
-            Previous Returns
-          </Typography>
-
+          <Typography variant="h6" color="secondary">Previous Returns</Typography>
           {previousReturns.map((ret, idx) => (
             <Box key={ret._id} sx={{ mb: 1 }}>
-              <Typography variant="body2" fontWeight={600}>
+              <Typography variant="body2">
                 Return #{idx + 1} - {new Date(ret.createdAt).toLocaleString()}
               </Typography>
-
-              <ul>
-                {ret.items.map((itm, i) => (
-                  <li key={i}>
-                    {itm.product?.name} | {itm.product?.category?.name} | {itm.product?.brand?.name} — {itm.quantity} pcs
-                  </li>
-                ))}
-              </ul>
             </Box>
           ))}
         </Paper>
@@ -181,6 +199,8 @@ const SalesReturnPage = ({ authUser }) => {
               <TableRow sx={{ backgroundColor: blueGrey[900] }}>
                 <TableCell sx={{ color: 'white' }}>Product</TableCell>
                 <TableCell sx={{ color: 'white' }}>Sold Qty</TableCell>
+                <TableCell sx={{ color: 'white' }}>Price</TableCell>
+                <TableCell sx={{ color: 'white' }}>Discount</TableCell>
                 <TableCell sx={{ color: 'white' }}>Return Qty</TableCell>
                 <TableCell sx={{ color: 'white' }}>Reason</TableCell>
               </TableRow>
@@ -189,21 +209,15 @@ const SalesReturnPage = ({ authUser }) => {
             <TableBody>
               {items.map((item, index) => (
                 <TableRow key={item._id}>
-                  <TableCell>
-                    {item.product?.name} 
-                    <br />
-                    <small>
-                      {item.product?.category?.name} - {item.product?.brand?.name}
-                    </small>
-                  </TableCell>
-
+                  <TableCell>{item.product?.name}</TableCell>
                   <TableCell>{item.quantity}</TableCell>
+                  <TableCell>{item.sellingPrice}</TableCell>
+                  <TableCell>{item.discount || 0}</TableCell>
 
                   <TableCell>
                     <TextField
                       type="number"
                       size="small"
-                      inputProps={{ min: 0, max: item.quantity }}
                       value={returnItems[index]?.quantity || ''}
                       onChange={(e) => handleQuantityChange(index, e.target.value)}
                     />
@@ -212,8 +226,6 @@ const SalesReturnPage = ({ authUser }) => {
                   <TableCell>
                     <TextField
                       size="small"
-                      fullWidth
-                      placeholder="Reason (optional)"
                       value={returnItems[index]?.reason || ''}
                       onChange={(e) => handleReasonChange(index, e.target.value)}
                     />
@@ -225,9 +237,16 @@ const SalesReturnPage = ({ authUser }) => {
         </Paper>
       ) : (
         transactionId && !loading && (
-          <Typography mt={2}>No items found for this transaction.</Typography>
+          <Typography mt={2}>No items found</Typography>
         )
       )}
+
+      {/* TOTAL */}
+      <Box sx={{ mt: 2, textAlign: 'right' }}>
+        <Typography variant="h6">
+          Return Total: Rs. {calculateReturnTotal().toFixed(2)}
+        </Typography>
+      </Box>
 
       {/* SUBMIT */}
       <Box sx={{ mt: 3, textAlign: 'right' }}>

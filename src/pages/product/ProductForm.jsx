@@ -5,6 +5,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import axiosInstance from '../../api/api';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import MediaUpload from "../../utils/MediaUpload";
+import * as XLSX from 'xlsx';
 
 const ProductForm = ({edit}) => {
   const location = useLocation();
@@ -16,6 +17,8 @@ const ProductForm = ({edit}) => {
   const {productId} = useParams();
   const [imageFile,setImageFile] = useState(null);
   const [imageUploading,setImageUploading] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+  const [excelUploading, setExcelUploading] = useState(false);
 
   const [data, setData] = useState({
     id:'',
@@ -124,12 +127,54 @@ const ProductForm = ({edit}) => {
     });
   }
 
+  const handleExcelUpload = async () => {
+    if (!excelFile) return alert("Please select a file");
+  
+    const formData = new FormData();
+    formData.append("file", excelFile);
+  
+    try {
+      setExcelUploading(true);
+  
+      const res = await axiosInstance.post('/products/upload-excel', formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
+  
+      alert("Uploaded: " + res.data.count + " products");
+  
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
+    } finally {
+      setExcelUploading(false);
+    }
+  };
+
   return (
     <Paper elevation={0} sx={{padding:2}} >
       <Stack spacing={2} sx={{margin:1}}>
         <Box sx={{textAlign:'center'}}>
           {isLoading&&<LinearProgress color="teal" />}
         </Box>
+
+        <Stack spacing={2}>
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={(e) => setExcelFile(e.target.files[0])}
+          />
+
+          <Button
+            variant="contained"
+            onClick={handleExcelUpload}
+            disabled={excelUploading}
+          >
+            Upload Excel
+          </Button>
+        </Stack>
+
         <form onSubmit={submitHandle}>
           <Stack spacing={2}>
             <TextField
