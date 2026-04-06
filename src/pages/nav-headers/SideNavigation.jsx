@@ -257,7 +257,7 @@ const SideNavigation = ({isLoggedIn,authUser,logOut}) => {
                 </DrawerHeader>
                 <Divider />
                   {
-                    authUser&&(authUser.role ==='superAdmin' || authUser.role ==='admin')?
+                    authUser&&authUser.permissions.includes('access_financial_data')?
                     <List>
                       {['Sell', 'Dashboard', 'Categories', 'Brands', 'Inventory','Sale Transactions','Sales Return','View Sales Returns','Accounts'].map((text, index) => (
                         <ListItem key={text} disablePadding sx={{ display: 'block' }}>
