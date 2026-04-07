@@ -88,8 +88,13 @@ const SalesTransactionPage = () => {
       await axiosInstance.put(`/sales/reverse/${transactionId}`);
       alert('Transaction reversed successfully.');
       await loadTransactions();
-    } catch {
-      alert('Error reversing transaction.');
+    } catch (err) {
+      const message =
+        err.response?.data?.error ||  // ✅ backend error
+        err.message ||                  // ✅ fallback
+        'Error reversing transaction';
+  
+      alert(message);
     }
   };
 
@@ -238,7 +243,7 @@ const SalesTransactionPage = () => {
               </List>
 
               <Grid container spacing={2} mt={1}>
-                {tx.status === 'Pending' && (
+                {/* {tx.status === 'Pending' && (
                   <Grid item>
                     <Button
                       variant="contained"
@@ -248,7 +253,7 @@ const SalesTransactionPage = () => {
                       Mark Completed
                     </Button>
                   </Grid>
-                )}
+                )} */}
 
                 {(tx.status !== "Cancelled" && tx.status !== "Returned"  ) && (
                   <Grid item>

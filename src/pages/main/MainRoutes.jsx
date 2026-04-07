@@ -17,6 +17,7 @@ import DashboardIndex from '../dashboard/DashboardIndex'
 import AccountIndex from '../account/AccountIndex'
 import SalesReturnIndex from '../salesReturn/SalesReturnIndex'
 import AccessDeniedPage from '../../components/AccessDeniedPage'
+import LoanPaymentIndex from '../loan/LoanPaymentIndex'
 
 
 const drawerWidth = 500
@@ -83,6 +84,7 @@ const DashboardRoutes = () => {
                                 <Route path='/dashboard/*' element={<DashboardIndex isLoggedIn={isLoggedIn} authUser={authUser}/>} />
                                 <Route path='/inventories/*' element={<InventoryIndex isLoggedIn={isLoggedIn} authUser={authUser}/>} />
                                 <Route path='/accounts/*' element={authUser&&authUser.permissions.includes('access_financial_data')?<AccountIndex isLoggedIn={isLoggedIn} authUser={authUser}/>:<AccessDeniedPage/>} />
+                                <Route path='/loan-payments/*' element={<LoanPaymentIndex isLoggedIn={isLoggedIn} authUser={authUser}/>} />
                                 {/* <Route path='/sale-test/*' element={<SalesPage isLoggedIn={isLoggedIn} authUser={authUser}/>} /> */}
                                 {/* <Route path='/barcode/*' element={<BarcodeReader/>} /> */}
                                 {/* <Route path='/contact/*' element={<ContactIndex/>} /> */}

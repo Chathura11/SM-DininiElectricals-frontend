@@ -21,6 +21,7 @@ import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
 import CompareArrowsOutlinedIcon from '@mui/icons-material/CompareArrowsOutlined';
 import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
+import RealEstateAgentIcon from '@mui/icons-material/RealEstateAgent';
 
 const drawerWidth = 240;
 
@@ -140,6 +141,9 @@ const SideNavigation = ({isLoggedIn,authUser,logOut}) => {
         navigate('/sales-return/all')
       }
       if(index ===8){
+        navigate('/loan-payments')
+      }
+      if(index ===9){
         navigate('/accounts')
       }
       
@@ -259,7 +263,7 @@ const SideNavigation = ({isLoggedIn,authUser,logOut}) => {
                   {
                     authUser&&authUser.permissions.includes('access_financial_data')?
                     <List>
-                      {['Sell', 'Dashboard', 'Categories', 'Brands', 'Inventory','Sale Transactions','Sales Return','View Sales Returns','Accounts'].map((text, index) => (
+                      {['Sell', 'Dashboard', 'Categories', 'Brands', 'Inventory','Sale Transactions','Sales Return','View Sales Returns','Loans','Accounts'].map((text, index) => (
                         <ListItem key={text} disablePadding sx={{ display: 'block' }}>
                           <ListItemButton
                             sx={{
@@ -284,6 +288,7 @@ const SideNavigation = ({isLoggedIn,authUser,logOut}) => {
                               : index === 5 ?<PointOfSaleIcon />
                               : index === 6 ?<CompareArrowsOutlinedIcon />
                               : index === 7 ?<AssignmentReturnOutlinedIcon />
+                              : index === 8 ?<RealEstateAgentIcon />
                               :<AccountBalanceOutlinedIcon/>
                             }
                             </ListItemIcon>
@@ -294,7 +299,7 @@ const SideNavigation = ({isLoggedIn,authUser,logOut}) => {
                     </List>
                     :
                     <List>
-                      {['Sell', 'Dashboard', 'Categories', 'Brands', 'Inventory','Sale Transactions','Sales Return','View Sales Returns'].map((text, index) => (
+                      {['Sell', 'Dashboard', 'Categories', 'Brands', 'Inventory','Sale Transactions','Sales Return','View Sales Returns','Loans'].map((text, index) => (
                         <ListItem key={text} disablePadding sx={{ display: 'block' }}>
                           <ListItemButton
                             sx={{
@@ -318,7 +323,8 @@ const SideNavigation = ({isLoggedIn,authUser,logOut}) => {
                               : index === 4 ?<Inventory2OutlinedIcon />
                               : index === 5 ?<PointOfSaleIcon />
                               : index === 6 ?<CompareArrowsOutlinedIcon />
-                              :<AssignmentReturnOutlinedIcon />
+                              : index === 7 ?<AssignmentReturnOutlinedIcon />
+                              :<RealEstateAgentIcon />
                             }
                             </ListItemIcon>
                             <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
