@@ -18,6 +18,10 @@ const SalesPage = ({ authUser }) => {
   const [status, setStatus] = useState('Completed');
   const [isLoading, setIsLoading] = useState(false);
 
+  // ✅ NEW STATES
+  const [globalDiscount, setGlobalDiscount] = useState(0);
+  const [receivedAmount, setReceivedAmount] = useState(0);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,7 +55,32 @@ const SalesPage = ({ authUser }) => {
     }
   };
 
-  // ✅ ADD ITEM WITH DISCOUNT
+  // ✅ APPLY GLOBAL DISCOUNT
+  const applyGlobalDiscount = (value) => {
+    let discountPercent = parseFloat(value) || 0;
+    discountPercent = Math.max(0, Math.min(100, discountPercent));
+
+    setGlobalDiscount(discountPercent);
+
+    const updatedItems = orderedItems.map(item => {
+      const total = item.sellingPrice * item.quantity;
+      const discountAmount = (total * discountPercent) / 100;
+      const finalTotal = total - discountAmount;
+      const profit = finalTotal - (item.costPrice * item.quantity);
+
+      return {
+        ...item,
+        discountPercent,
+        discountAmount,
+        finalTotal,
+        profit
+      };
+    });
+
+    setOrderedItems(updatedItems);
+  };
+
+  // ✅ ADD ITEM
   const addItem = async () => {
     if (!selectedProduct || quantity < 1) {
       return alert("Select product & quantity");
@@ -65,22 +94,26 @@ const SalesPage = ({ authUser }) => {
     const costPrice = await getCostPriceFIFO(selectedProduct._id, quantity);
     const sellingPrice = selectedProduct.price;
 
+    const total = sellingPrice * quantity;
+    const discountAmount = (total * globalDiscount) / 100;
+    const finalTotal = total - discountAmount;
+
     const newItem = {
       product: selectedProduct,
       quantity,
       sellingPrice,
       costPrice,
-      discountPercent: 0,
-      discountAmount: 0,
-      finalTotal: sellingPrice * quantity,
-      profit: (sellingPrice - costPrice) * quantity
+      discountPercent: globalDiscount,
+      discountAmount,
+      finalTotal,
+      profit: finalTotal - (costPrice * quantity)
     };
 
     setOrderedItems([...orderedItems, newItem]);
     setQuantity(1);
   };
 
-  // ✅ HANDLE DISCOUNT CHANGE
+  // ✅ HANDLE INDIVIDUAL DISCOUNT
   const handleItemDiscountChange = (index, value) => {
     const newItems = [...orderedItems];
 
@@ -113,11 +146,17 @@ const SalesPage = ({ authUser }) => {
 
   // ✅ TOTALS
   const subtotal = orderedItems.reduce((sum, item) => sum + item.finalTotal, 0);
+  const balance = receivedAmount - subtotal;
 
   // ✅ SELL
   const handleSell = async () => {
     if (orderedItems.length === 0) {
       return alert("No items");
+    }
+
+    // ✅ VALIDATION
+    if (paymentMethod === "Cash" && receivedAmount < subtotal && status === "Completed") {
+      return alert("Received amount is less than total!");
     }
 
     setIsLoading(true);
@@ -136,6 +175,7 @@ const SalesPage = ({ authUser }) => {
         customerName,
         paymentMethod,
         status,
+        receivedAmount,
         items
       });
 
@@ -158,6 +198,8 @@ const SalesPage = ({ authUser }) => {
     setCustomerName('');
     setQuantity(1);
     setSelectedProduct(null);
+    setGlobalDiscount(0);
+    setReceivedAmount(0);
   };
 
   return (
@@ -219,11 +261,8 @@ const SalesPage = ({ authUser }) => {
             value={selectedProduct?.code || ''}
             onChange={(e) => {
               const code = e.target.value;
-
-              // Try to find a product matching the code
               const product = products.find(p => p.code.toLowerCase() === code.toLowerCase());
-
-              setSelectedProduct(product || { code }); // keep code typed even if not found
+              setSelectedProduct(product || { code });
             }}
           />
         </Grid>
@@ -240,6 +279,19 @@ const SalesPage = ({ authUser }) => {
           <Button fullWidth variant="contained" onClick={addItem}>
             Add
           </Button>
+        </Grid>
+      </Grid>
+
+      {/* GLOBAL DISCOUNT */}
+      <Grid container spacing={2} sx={{ mt: 2 }}>
+        <Grid item size={4}>
+          <TextField
+            fullWidth
+            label="Global Discount %"
+            type="number"
+            value={globalDiscount}
+            onChange={(e) => applyGlobalDiscount(e.target.value)}
+          />
         </Grid>
       </Grid>
 
@@ -288,12 +340,29 @@ const SalesPage = ({ authUser }) => {
         </Table>
       </TableContainer>
 
-      {/* TOTAL */}
+      {/* TOTAL + PAYMENT */}
       <Grid container justifyContent="flex-end" sx={{ mt: 2 }}>
         <Grid item size={4}>
           <Typography variant="h6">
             Total: Rs. {subtotal.toFixed(2)}
           </Typography>
+
+          <TextField
+            fullWidth
+            label="Received Amount"
+            type="number"
+            value={receivedAmount}
+            onChange={(e) => setReceivedAmount(parseFloat(e.target.value) || 0)}
+            sx={{ mt: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Balance"
+            value={balance.toFixed(2)}
+            InputProps={{ readOnly: true }}
+            sx={{ mt: 2 }}
+          />
 
           <Grid container spacing={2} sx={{ mt: 2 }}>
             <Grid item size={6}>
