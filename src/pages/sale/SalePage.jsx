@@ -18,11 +18,14 @@ const SalesPage = ({ authUser }) => {
   const [status, setStatus] = useState('Completed');
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✅ NEW STATES
-  const [globalDiscount, setGlobalDiscount] = useState(0);
+  const [globalDiscountType, setGlobalDiscountType] = useState('percent');
+  const [globalDiscountValue, setGlobalDiscountValue] = useState(0);
   const [receivedAmount, setReceivedAmount] = useState(0);
 
   const navigate = useNavigate();
+
+  // ✅ ROUND FUNCTION
+  const round2 = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
 
   useEffect(() => {
     fetchData();
@@ -48,32 +51,42 @@ const SalesPage = ({ authUser }) => {
       const res = await axiosInstance.get(`/stocks/fifo-cost`, {
         params: { productId, quantity: qty }
       });
-      return res.data.costPrice;
+      return round2(res.data.costPrice);
     } catch (error) {
       console.error(error);
       return 0;
     }
   };
 
-  // ✅ APPLY GLOBAL DISCOUNT
+  // ✅ GLOBAL DISCOUNT APPLY
   const applyGlobalDiscount = (value) => {
-    let discountPercent = parseFloat(value) || 0;
-    discountPercent = Math.max(0, Math.min(100, discountPercent));
-
-    setGlobalDiscount(discountPercent);
+    const val = parseFloat(value) || 0;
+    setGlobalDiscountValue(val);
 
     const updatedItems = orderedItems.map(item => {
       const total = item.sellingPrice * item.quantity;
-      const discountAmount = (total * discountPercent) / 100;
-      const finalTotal = total - discountAmount;
-      const profit = finalTotal - (item.costPrice * item.quantity);
+
+      let discountAmount = 0;
+      let discountPercent = 0;
+
+      if (globalDiscountType === "percent") {
+        discountPercent = Math.max(0, Math.min(100, val));
+        discountAmount = round2((total * discountPercent) / 100);
+      } else {
+        discountAmount = Math.max(0, val);
+        discountPercent = total > 0 ? round2((discountAmount / total) * 100) : 0;
+      }
+
+      const finalTotal = round2(total - discountAmount);
 
       return {
         ...item,
+        discountType: globalDiscountType,
+        discountValue: val,
         discountPercent,
         discountAmount,
         finalTotal,
-        profit
+        profit: round2(finalTotal - (item.costPrice * item.quantity))
       };
     });
 
@@ -82,79 +95,91 @@ const SalesPage = ({ authUser }) => {
 
   // ✅ ADD ITEM
   const addItem = async () => {
-    if (!selectedProduct || quantity < 1) {
-      return alert("Select product & quantity");
-    }
+    if (!selectedProduct || quantity < 1) return alert("Select product & quantity");
 
     const availableQty = inventory[selectedProduct._id] || 0;
-    if (availableQty < quantity) {
-      return alert("Not enough stock");
-    }
+    if (availableQty < quantity) return alert("Not enough stock");
 
     const costPrice = await getCostPriceFIFO(selectedProduct._id, quantity);
-    const sellingPrice = selectedProduct.price;
+    const sellingPrice = round2(selectedProduct.price);
+    const total = round2(sellingPrice * quantity);
 
-    const total = sellingPrice * quantity;
-    const discountAmount = (total * globalDiscount) / 100;
-    const finalTotal = total - discountAmount;
+    let discountAmount = 0;
+    let discountPercent = 0;
+
+    if (globalDiscountType === "percent") {
+      discountPercent = globalDiscountValue;
+      discountAmount = round2((total * discountPercent) / 100);
+    } else {
+      discountAmount = globalDiscountValue;
+      discountPercent = total > 0 ? round2((discountAmount / total) * 100) : 0;
+    }
+
+    const finalTotal = round2(total - discountAmount);
 
     const newItem = {
       product: selectedProduct,
       quantity,
       sellingPrice,
       costPrice,
-      discountPercent: globalDiscount,
+      discountType: globalDiscountType,
+      discountValue: globalDiscountValue,
+      discountPercent,
       discountAmount,
       finalTotal,
-      profit: finalTotal - (costPrice * quantity)
+      profit: round2(finalTotal - (costPrice * quantity))
     };
 
     setOrderedItems([...orderedItems, newItem]);
     setQuantity(1);
   };
 
-  // ✅ HANDLE INDIVIDUAL DISCOUNT
+  // ✅ ITEM DISCOUNT
   const handleItemDiscountChange = (index, value) => {
     const newItems = [...orderedItems];
-
-    let discountPercent = parseFloat(value) || 0;
-    discountPercent = Math.max(0, Math.min(100, discountPercent));
-
     const item = newItems[index];
 
     const total = item.sellingPrice * item.quantity;
-    const discountAmount = (total * discountPercent) / 100;
-    const finalTotal = total - discountAmount;
-    const profit = finalTotal - (item.costPrice * item.quantity);
+    const val = parseFloat(value) || 0;
+
+    let discountAmount = 0;
+    let discountPercent = 0;
+
+    if (item.discountType === "percent") {
+      discountPercent = Math.max(0, Math.min(100, val));
+      discountAmount = round2((total * discountPercent) / 100);
+    } else {
+      discountAmount = Math.max(0, val);
+      discountPercent = total > 0 ? round2((discountAmount / total) * 100) : 0;
+    }
+
+    const finalTotal = round2(total - discountAmount);
 
     newItems[index] = {
       ...item,
+      discountValue: val,
       discountPercent,
       discountAmount,
       finalTotal,
-      profit
+      profit: round2(finalTotal - (item.costPrice * item.quantity))
     };
 
     setOrderedItems(newItems);
   };
 
-  // ✅ REMOVE ITEM
   const removeItem = (index) => {
-    const newItems = orderedItems.filter((_, i) => i !== index);
-    setOrderedItems(newItems);
+    setOrderedItems(orderedItems.filter((_, i) => i !== index));
   };
 
-  // ✅ TOTALS
-  const subtotal = orderedItems.reduce((sum, item) => sum + item.finalTotal, 0);
-  const balance = receivedAmount - subtotal;
+  const subtotal = round2(
+    orderedItems.reduce((sum, item) => sum + item.finalTotal, 0)
+  );
 
-  // ✅ SELL
+  const balance = round2(receivedAmount - subtotal);
+
   const handleSell = async () => {
-    if (orderedItems.length === 0) {
-      return alert("No items");
-    }
+    if (orderedItems.length === 0) return alert("No items");
 
-    // ✅ VALIDATION
     if (paymentMethod === "Cash" && receivedAmount < subtotal && status === "Completed") {
       return alert("Received amount is less than total!");
     }
@@ -175,12 +200,11 @@ const SalesPage = ({ authUser }) => {
         customerName,
         paymentMethod,
         status,
-        receivedAmount,
+        receivedAmount: round2(receivedAmount),
         items
       });
 
       alert("Sale completed!");
-
       handleClear();
       fetchData();
       navigate(`/sell/invoice/${res.data.transaction._id}`);
@@ -198,29 +222,23 @@ const SalesPage = ({ authUser }) => {
     setCustomerName('');
     setQuantity(1);
     setSelectedProduct(null);
-    setGlobalDiscount(0);
+    setGlobalDiscountValue(0);
     setReceivedAmount(0);
   };
 
   return (
     <Paper sx={{ p: 4 }}>
       {/* HEADER */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Grid container spacing={2}>
         <Grid item size={4}>
-          <TextField
-            fullWidth
-            label="Customer Name"
+          <TextField fullWidth label="Customer Name"
             value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
+            onChange={(e) => setCustomerName(e.target.value)} />
         </Grid>
 
         <Grid item size={4}>
-          <Select
-            fullWidth
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-          >
+          <Select fullWidth value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}>
             <MenuItem value="Cash">Cash</MenuItem>
             <MenuItem value="Card">Card</MenuItem>
             <MenuItem value="Online">Online</MenuItem>
@@ -228,11 +246,8 @@ const SalesPage = ({ authUser }) => {
         </Grid>
 
         <Grid item size={4}>
-          <Select
-            fullWidth
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
+          <Select fullWidth value={status}
+            onChange={(e) => setStatus(e.target.value)}>
             <MenuItem value="Completed">Completed</MenuItem>
             <MenuItem value="Pending">Pending</MenuItem>
             <MenuItem value="Free">Free</MenuItem>
@@ -241,7 +256,7 @@ const SalesPage = ({ authUser }) => {
       </Grid>
 
       {/* PRODUCT SELECT */}
-      <Grid container spacing={2}>
+      <Grid container spacing={2} sx={{ mt: 2 }}>
         <Grid item size={6}>
           <Autocomplete
             options={products}
@@ -261,8 +276,10 @@ const SalesPage = ({ authUser }) => {
             value={selectedProduct?.code || ''}
             onChange={(e) => {
               const code = e.target.value;
-              const product = products.find(p => p.code.toLowerCase() === code.toLowerCase());
-              setSelectedProduct(product || { code });
+              const product = products.find(
+                p => p.code.toLowerCase() === code.toLowerCase()
+              );
+              setSelectedProduct(product || null);
             }}
           />
         </Grid>
@@ -270,6 +287,8 @@ const SalesPage = ({ authUser }) => {
         <Grid item size={1}>
           <TextField
             type="number"
+            fullWidth
+            label="Qty"
             value={quantity}
             onChange={(e) => setQuantity(Math.max(1, +e.target.value))}
           />
@@ -285,11 +304,22 @@ const SalesPage = ({ authUser }) => {
       {/* GLOBAL DISCOUNT */}
       <Grid container spacing={2} sx={{ mt: 2 }}>
         <Grid item size={4}>
+          <Select
+            fullWidth
+            value={globalDiscountType}
+            onChange={(e) => setGlobalDiscountType(e.target.value)}
+          >
+            <MenuItem value="percent">Discount %</MenuItem>
+            <MenuItem value="amount">Discount Rs</MenuItem>
+          </Select>
+        </Grid>
+
+        <Grid item size={4}>
           <TextField
             fullWidth
-            label="Global Discount %"
+            label="Discount Value"
             type="number"
-            value={globalDiscount}
+            value={globalDiscountValue}
             onChange={(e) => applyGlobalDiscount(e.target.value)}
           />
         </Grid>
@@ -303,7 +333,7 @@ const SalesPage = ({ authUser }) => {
               <TableCell>Product</TableCell>
               <TableCell>Qty</TableCell>
               <TableCell>Price</TableCell>
-              <TableCell>Discount %</TableCell>
+              <TableCell>Discount</TableCell>
               <TableCell>Total</TableCell>
               <TableCell>Action</TableCell>
             </TableRow>
@@ -320,10 +350,8 @@ const SalesPage = ({ authUser }) => {
                   <TextField
                     size="small"
                     type="number"
-                    value={item.discountPercent}
-                    onChange={(e) =>
-                      handleItemDiscountChange(i, e.target.value)
-                    }
+                    value={item.discountValue}
+                    onChange={(e) => handleItemDiscountChange(i, e.target.value)}
                   />
                 </TableCell>
 
@@ -340,7 +368,7 @@ const SalesPage = ({ authUser }) => {
         </Table>
       </TableContainer>
 
-      {/* TOTAL + PAYMENT */}
+      {/* TOTAL */}
       <Grid container justifyContent="flex-end" sx={{ mt: 2 }}>
         <Grid item size={4}>
           <Typography variant="h6">
@@ -352,7 +380,9 @@ const SalesPage = ({ authUser }) => {
             label="Received Amount"
             type="number"
             value={receivedAmount}
-            onChange={(e) => setReceivedAmount(parseFloat(e.target.value) || 0)}
+            onChange={(e) =>
+              setReceivedAmount(round2(parseFloat(e.target.value) || 0))
+            }
             sx={{ mt: 2 }}
           />
 
@@ -364,24 +394,15 @@ const SalesPage = ({ authUser }) => {
             sx={{ mt: 2 }}
           />
 
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid item size={6}>
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={handleSell}
-                disabled={isLoading}
-              >
-                Complete Sale
-              </Button>
-            </Grid>
-
-            <Grid item size={6}>
-              <Button fullWidth onClick={handleClear}>
-                Clear
-              </Button>
-            </Grid>
-          </Grid>
+          <Button
+            fullWidth
+            variant="contained"
+            sx={{ mt: 2 }}
+            onClick={handleSell}
+            disabled={isLoading}
+          >
+            Complete Sale
+          </Button>
         </Grid>
       </Grid>
     </Paper>
