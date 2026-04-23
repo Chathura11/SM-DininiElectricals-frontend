@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Button, Typography, Paper, Divider, Stack, Box } from '@mui/material';
 import axiosInstance from '../../api/api';
 import { useReactToPrint } from 'react-to-print';
-import logoName from '../../assets/back3.png';
+import logoName from '../../assets/logo2.png';
 
 const InvoicePage = () => {
   const { id } = useParams();
