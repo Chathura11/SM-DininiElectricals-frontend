@@ -11,6 +11,7 @@ import {
   Button,
   Box,
   LinearProgress,
+  CircularProgress,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -24,7 +25,8 @@ import StockEntryDetails from './StockEntryDetails';
 const StockEntryList = () => {
   const [stockEntries, setStockEntries] = useState([]);
   const { openSidePanel } = useSidePanel();
-  const [isLoading, setIsLoading] = useState(true); 
+  const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null); // 🔥 track deleting row
 
   useEffect(() => {
     fetchStockEntries();
@@ -34,22 +36,33 @@ const StockEntryList = () => {
     try {
       const res = await axiosInstance.get('/stocks/stock-entries-detailed');
       setStockEntries(res.data.data);
-      console.log(res.data.data)
-      setIsLoading(false);
     } catch (err) {
       console.error('Error fetching stock entries:', err);
+    } finally {
       setIsLoading(false);
     }
   };
 
+  // ✅ DELETE HANDLER
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this stock entry?')) {
-      try {
-        await axiosInstance.delete(`/stock-entries/${id}`);
-        setStockEntries((prev) => prev.filter((entry) => entry._id !== id));
-      } catch (err) {
-        console.error('Error deleting stock entry:', err);
-      }
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete this stock entry?\n\nThis will also reverse inventory and accounting.'
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingId(id);
+
+      await axiosInstance.delete(`/stocks/${id}`);
+
+      // remove from UI
+      setStockEntries((prev) => prev.filter((entry) => entry._id !== id));
+    } catch (err) {
+      console.error('Error deleting stock entry:', err);
+      alert(err.response?.data?.message || 'Delete failed');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -57,26 +70,31 @@ const StockEntryList = () => {
     openSidePanel('Add New Stock Entry', <StockEntryForm />);
   };
 
-  const handleOpenView =(data)=>{
-    openSidePanel('Stock Entry Details', <StockEntryDetails data={data}/>);
-  }
+  const handleOpenView = (data) => {
+    openSidePanel('Stock Entry Details', <StockEntryDetails data={data} />);
+  };
 
   return (
     <>
       <Paper elevation={1} sx={{ p: 3 }}>
         <Stack spacing={2}>
           <Stack direction="row" justifyContent="end">
-            <Button variant="contained" size='small' startIcon={<AddIcon />} onClick={handleOpenForm}>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={handleOpenForm}
+            >
               New Entry
             </Button>
           </Stack>
-          {
-            isLoading
-            &&
-              <Box sx={{textAlign:'center'}}>
-                <LinearProgress color="teal" />
-              </Box>
-          }
+
+          {isLoading && (
+            <Box sx={{ textAlign: 'center' }}>
+              <LinearProgress />
+            </Box>
+          )}
+
           <Table>
             <TableHead>
               <TableRow>
@@ -88,25 +106,47 @@ const StockEntryList = () => {
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {stockEntries.map((entry) => (
                 <TableRow key={entry._id}>
                   <TableCell>{entry.invoiceNumber || 'N/A'}</TableCell>
                   <TableCell>{entry.supplier?.name || '-'}</TableCell>
-                  <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {new Date(entry.date).toLocaleDateString()}
+                  </TableCell>
                   <TableCell>{entry.location || '-'}</TableCell>
-                  <TableCell>{entry.totalAmount?.toFixed(2) || '0.00'}</TableCell>
+                  <TableCell>
+                    {entry.totalAmount?.toFixed(2) || '0.00'}
+                  </TableCell>
+
                   <TableCell align="center">
+                    {/* VIEW */}
                     <Tooltip title="View">
-                      <IconButton color="primary" onClick={()=>handleOpenView(entry)}>
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleOpenView(entry)}
+                      >
                         <VisibilityIcon />
                       </IconButton>
                     </Tooltip>
-                    {/* <Tooltip title="Delete">
-                      <IconButton color="error" onClick={() => handleDelete(entry._id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip> */}
+
+                    {/* DELETE */}
+                    <Tooltip title="Delete">
+                      <span>
+                        <IconButton
+                          color="error"
+                          onClick={() => handleDelete(entry._id)}
+                          disabled={deletingId === entry._id}
+                        >
+                          {deletingId === entry._id ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <DeleteIcon />
+                          )}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
