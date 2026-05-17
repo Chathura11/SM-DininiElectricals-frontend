@@ -21,6 +21,7 @@ import axiosInstance from '../../api/api';
 import StockEntryForm from './StockEntryForm';
 import { useSidePanel } from '../../context/SidePanelContext';
 import StockEntryDetails from './StockEntryDetails';
+import PurchaseReturnForm from './PurchaseReturnForm';
 
 const StockEntryList = () => {
   const [stockEntries, setStockEntries] = useState([]);
@@ -129,6 +130,24 @@ const StockEntryList = () => {
                       >
                         <VisibilityIcon />
                       </IconButton>
+                    </Tooltip>
+
+                    {/* RETURN */}
+                    <Tooltip title="Return Items">
+                      <Button
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                        sx={{ mx: 1 }}
+                        onClick={() =>
+                          openSidePanel(
+                            'Purchase Return',
+                            <PurchaseReturnForm stockEntry={entry} />
+                          )
+                        }
+                      >
+                        Return
+                      </Button>
                     </Tooltip>
 
                     {/* DELETE */}
